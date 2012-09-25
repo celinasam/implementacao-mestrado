@@ -6,4 +6,5 @@ Contém os fontes da versão 0.22 do MapReduce com implementação das novas cod
 Para descompactar:
 
 tar cvfz hadoop-mapreduce.tar.gz
+tar cvfz hadoop-0.22.1-SNAPSHOT.tar.gz
 
