@@ -1,0 +1,181 @@
+# README com instruções gerais para os testes da versão 0.22 do Hadoop
+#
+# diagrama de classes e de colaboração:
+#   https://sites.google.com/site/newerasurecodinginhadoop/file-cabinet
+#     doxygen-rais.zip: diagramas de classes e de colaboração
+# post com instruções gerais da ferramenta usada: Doxygen
+#   http://mcss.posterous.com/diagrama-de-classes-do-codigo-fonte-jav
+
+# decisao: partido código da camada RS
+#  classe ErasureCode
+
+# alterações nas classes:
+# legenda:
+#    > alteração
+#    + nova classe
+#    * não modificado
+#
+# package org.apache.hadoop.raid
+#
+# > BlockFixer
+# > RaidNode
+# > DistributedRaidFileSystem
+#
+# * ReedSolomonCode
+# + TurboCode
+# + TornadoCode
+# 
+# > Encoder
+# *  ReedSolomonEncoder
+# *  XOREncoder
+# +  TurboEncoder
+# +  TornadoEncoder
+#
+# > Decoder
+# *  ReedSolomonDecoder
+# *  XORDecoder
+# +  TurboDecoder
+# +  TornadoDecoder
+#
+# package org.apache.hadoop.raid.protocol
+#
+# > PolicyInfo
+#
+# package org.apache.hadoop.hdfs
+# 
+# *  DistributedRaidFileSystem.java
+# *  RaidDFSUtil.java
+# 
+# fontes:
+# hadoop-common
+# hadoop-mapreduce
+# hadoop-hdfs
+# 
+# diretorios dos packages da camada RAID
+#   Map Reduce
+#     ./src/contrib/raid/src/java/org/apache/hadoop/raid
+#     ./src/contrib/raid/src/java/org/apache/hadoop/raid/protocol
+#     ./src/contrib/raid/src/java/org/apache/hadoop/hdfs
+# 
+#   Hdfs
+#     ./src/java/org/apache/hadoop/hdfs/
+#
+# patches
+#   https://issues.apache.org/jira/browse/HADOOP-6846
+#   https://issues.apache.org/jira/browse/HADOOP-6342
+#
+# para compilar
+#   copiar os scripts de criação das cópias dos fontes, de compilação, instalação e configuração da versão 0.22
+#     git clone https://github.com/celinasam/Generate-Hadoop-Tarball.git
+#     o checkout.sh deve ser alterado para fazer o clone dos fontes modificadoso do mapreduce
+#       git clone git@bitbucket.org:celinasam/hadoop-mapred-0.22.git
+#
+cd /mnt
+rm -rf /mnt/hadoop-common
+rm -rf /mnt/hadoop-hdfs
+rm -rf /mnt/hadoop-mapreduce
+. ~hadoop/Generate-Hadoop-Tarball/checkout.sh 0.22.0 /mnt
+# Time duration: 2 min 27 secs.
+cd /mnt/hadoop-common
+patch -p0 < /home/hadoop/Download/HADOOP-6342.patch
+cp ~hadoop/Generate-Hadoop-Tarball/combine-bindirs.sh src/buildscripts/
+chmod +x src/buildscripts/*.sh
+
+# copiar o código novo
+cd /mnt/hadoop-mapreduce/src/contrib/raid/src/java/org/apache/hadoop/raid
+cp ~celina/unicamp/plano-trabalho-mestrado/defesa/implementacao/*.java .
+mv PolicyInfo.java protocol/
+
+# compilar
+cd ~hadoop/Generate-Hadoop-Tarball
+./generate-tarball.sh 0.22.1-SNAPSHOT /mnt
+
+tarball gerado:
+/mnt/hadoop-common/build/hadoop-0.22.1-SNAPSHOT.tar.gz 
+
+# recompilar
+cd ~hadoop/Generate-Hadoop-Tarball
+./generate-tarball-recompile.sh 0.22.1-SNAPSHOT /mnt
+
+# gera um tarball
+./generate-tarball.sh 0.22.1-SNAPSHOT /mnt
+hadoop@apollo-desktop:~/Generate-Hadoop-Tarball$ ls -lat /mnt/hadoop-common/build/hadoop-0.22.1-SNAPSHOT.tar.gz
+#
+# tamanho dos tarball gerado
+# -rw-r--r-- 1 hadoop hadoop 64620804 2012-09-27 19:25 /mnt/hadoop-common/build/hadoop-0.22.1-SNAPSHOT.tar.gz
+
+# tempo de execução (elapsed)
+# Time duration: 6 min 43 secs
+
+# instala tarball
+cp /mnt/hadoop-common/build/hadoop-0.22.1-SNAPSHOT.tar.gz /mnt
+cd ~/Generate-Hadoop-Tarball
+. run-pseudo-distributed-munged.sh 0.22.1 /mnt
+
+# ver se tudo está tudo off
+jps -l
+
+# configurar camada raid
+cd ~/Generate-Hadoop-Tarball
+./conf-raid.sh 0.22.1 /mnt
+cp conf/hdfs-raid-site.xml /mnt/test/hadoop-0.22.1-SNAPSHOT/conf/hdfs-site.xml
+
+# testar
+su - hadoop
+. ~/hadoop-bashrc.sh
+start-dfs.sh
+start-mapred.sh
+
+# copiar os arquivos de teste, imagens iso do Ubuntu
+hadoop fs -copyFromLocal ~celina/Downloads/ubuntu-10.04.1-desktop-i386.iso input
+hadoop fs -copyFromLocal ~celina/Downloads/ubuntu-12.04-desktop-i386.iso input
+
+# subir RaidNode
+start-raidnode.sh
+
+# log do RaidNode
+tail /mnt/test/hadoop-0.22.1-SNAPSHOT/logs/hadoop-hadoop-org.apache.hadoop.raid.RaidNode-apollo-desktop.out
+
+# truncar log com muitos erros
+# head -n 1000 hadoop-hadoop-org.apache.hadoop.raid.RaidNode-apollo-desktop.log > hadoop-hadoop-org.apache.hadoop.raid.RaidNode-apollo-desktop.log.trim
+head -n 1000 /mnt/test/hadoop-0.22.1-SNAPSHOT/logs/hadoop-hadoop-org.apache.hadoop.raid.RaidNode-apollo-desktop.log > hadoop-hadoop.org.apache.hadoop.raid.RaidNode-apollo-desktop.log.trim
+
+# erro do casting, classes relacionadas
+/mnt/hadoop-mapreduce/src/contrib/raid/src/java/org/apache/hadoop/hdfs/DistributedRaidFileSystem.java
+/mnt/hadoop-hdfs/src/java/org/apache/hadoop/hdfs/DistributedFileSystem.java
+
+# about namenode in your browser
+http://localhost:50070
+  
+# about task tracker
+  http://localhost:50060
+
+# about job tracker
+  http://localhost:50030
+
+# arquivo de configuração camada RAID
+#  /mnt/test/0.22.0/hdfs/DFS/conf/raid.xml
+
+# bases de dados públicas
+# - livros do projeto Gutemberg (formatos plain text, html e epub)
+# - Imagens ISO de distribuições linux (cada uma ocupa +- 800MB)
+# - dados de temperatura  downloaded from NCDC (de 1929 à 2012) - ~9.9GB em 400 000 arquivos em formato plain text
+# - arquivos de áudio downloaded from http://www.seekasong.com/ ou from http://www.get-music.net/ (http://tylergrund.com/mp3/Beatles/ http://195.122.253.112/public/mp3/Led%20Zeppelin/ http://195.122.253.112/public/mp3/Queen/)
+# - arquivos gerados aleatoriamente em formato plain text
+
+# procedimentos automáticos para download e para upload na instalação hdfs V 0.22.0
+
+# programas de testes dos dados que foram uploaded, raided (RAID, RS, Turbo-like e Tornado)) na instalação hdfs V 0.22.0
+
+# - cálculo da temperatura máxima (executado na própria instalação hdfs V 0.22.0)
+# - instalação de uma imagem ISO (downloaded from hdfs V 0.22.0)
+# - visualização de livros (downloaded from hdfs V 0.22.0)
+# - audição de música em um aparelho celular (downloaded from hdfs V 0.22.0)
+# - diff de arquivos antes de serem uploaded to hadoop para codificação e depois de serem dwonloaded from hadoop em formato plain text
+
+# Todos os experimentos poderiam ser gravados em vídeo e disponibilizados no site
+
+# diferença analise quantitativa e analise qualitativa
+# http://programapibicjr2010.blogspot.com.br/2011/04/diferenca-entre-pesquisa-qualitativa-e.html
+# Hartmut Günther, Pesquisa Qualitativa Versus Pesquisa Quantitativa: Esta É a Questão? a10v22n2.pdf
+
