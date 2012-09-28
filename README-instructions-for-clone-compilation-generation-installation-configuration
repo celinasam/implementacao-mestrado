@@ -1,5 +1,12 @@
 # README com instruções gerais para os testes da versão 0.22 do Hadoop
 #
+# Todos os procedimentos foram executados em uma máquina
+#
+# notebook apollo-desktop com Ubunto 10.04 com kernel linux 2.6.32 GNOME 2.30.2
+#  memória RAM: 1.7GB, dual-core com processador intel pentium T3400 2.16GHz
+#  disco interno: 150MB
+#  discos externos com interface USB: samsung de 350MB e seagate de 1TB
+#
 # diagrama de classes e de colaboração:
 #   https://sites.google.com/site/newerasurecodinginhadoop/file-cabinet
 #     doxygen-rais.zip: diagramas de classes e de colaboração
